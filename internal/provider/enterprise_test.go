@@ -242,7 +242,7 @@ func TestEnterpriseStreamReauthorizationStaysInTenant(t *testing.T) {
 	}
 	storage := authStorage{GitHubAccessToken: "synthetic-access", GitHubBaseURL: "https://example.ghe.com"}
 	token := copilotTokenEntry{Token: "synthetic-expired", APIBaseURL: s.Config().CopilotAPIURL}
-	stream, _, err := s.openModelStream(context.Background(), "", "account", storage, token, "/chat/completions", []byte(`{"messages":[]}`))
+	stream, _, err := s.openModelStream(context.Background(), "", "account", storage, token, "/chat/completions", []byte(`{"messages":[]}`), nil)
 	if err != nil || stream.StatusCode != 200 || exchanges != 1 || len(h.requests) != 2 {
 		t.Fatalf("stream retry: %#v %v exchanges=%d", stream, err, exchanges)
 	}

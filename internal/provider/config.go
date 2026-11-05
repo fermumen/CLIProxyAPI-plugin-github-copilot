@@ -39,6 +39,7 @@ type Config struct {
 	ModelsExcluded           []string      `yaml:"models_excluded"`
 	ModelPickerRequired      bool          `yaml:"model_picker_required"`
 	AllowRawModelNames       bool          `yaml:"allow_raw_model_names"`
+	ForwardAnthropicBetas    bool          `yaml:"forward_anthropic_betas"`
 }
 
 func DefaultConfig() Config {
@@ -53,6 +54,7 @@ func DefaultConfig() Config {
 		OAuthTimeoutSeconds:      900,
 		ModelCacheTTLSeconds:     60,
 		TokenExpiryBufferSeconds: 300,
+		ForwardAnthropicBetas:    true,
 	}
 }
 

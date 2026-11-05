@@ -12,6 +12,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 
+## [v0.1.3] - 2026-11-05
+
+### Added
+
+- 💡 feat: forward the client's `anthropic-version` and supported `anthropic-beta` headers when a Claude request goes unchanged to Copilot's `/v1/messages`. The allowed beta families match VS Code's agent host: `interleaved-thinking`, `context-management`, `advanced-tool-use`, `per-turn-control`, `thinking-display-updates`. Translated requests and other client headers are not forwarded.
+- 💡 feat: `forward_anthropic_betas` option (default `true`) to turn beta forwarding off.
+
+### Fixed
+
+- 🐛 fix: if Copilot rejects a request with `400` while betas were forwarded, retry once without `anthropic-beta`, so an unsupported beta cannot break a session.
+
+### Changed
+
+- Plugin metadata author is now `fermumen`.
+
 ## [v0.1.2] - 2026-11-02
 
 ### Fixed

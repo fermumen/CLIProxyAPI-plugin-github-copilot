@@ -66,7 +66,8 @@ func (s *Service) Execute(ctx context.Context, req ExecuteRequest) (pluginapi.Ex
 	if sourceFormat == "openai-response" && endpoint == translate.EndpointResponses {
 		requestBody = translate.RestoreReservedTools(requestBody, req.OriginalRequest)
 	}
-	resp, token, errDo := s.doModelRequest(ctx, req.HostCallbackID, req.AuthID, storage, token, endpoint, requestBody, false)
+	extraHeaders := upstreamPassthroughHeaders(sourceFormat, endpoint, req.Headers, s.Config().ForwardAnthropicBetas)
+	resp, token, errDo := s.doModelRequest(ctx, req.HostCallbackID, req.AuthID, storage, token, endpoint, requestBody, false, extraHeaders)
 	if errDo != nil {
 		return pluginapi.ExecutorResponse{}, errDo
 	}
@@ -146,7 +147,7 @@ func (s *Service) executeStreamWithTimeouts(ctx context.Context, req ExecuteRequ
 				<-timeoutDone
 			}
 		}()
-		return s.openModelStream(ctx, req.HostCallbackID, req.AuthID, storage, token, endpoint, requestBody)
+		return s.openModelStream(ctx, req.HostCallbackID, req.AuthID, storage, token, endpoint, requestBody, upstreamPassthroughHeaders(sourceFormat, endpoint, req.Headers, s.Config().ForwardAnthropicBetas))
 	}()
 	if errOpen != nil {
 		return nil, errOpen
@@ -175,11 +176,11 @@ func (s *Service) executeStreamWithTimeouts(ctx context.Context, req ExecuteRequ
 	return headers, nil
 }
 
-func (s *Service) doModelRequest(ctx context.Context, callbackID, authID string, storage authStorage, token copilotTokenEntry, endpoint string, body []byte, stream bool) (transport.Response, copilotTokenEntry, error) {
+func (s *Service) doModelRequest(ctx context.Context, callbackID, authID string, storage authStorage, token copilotTokenEntry, endpoint string, body []byte, stream bool, extraHeaders http.Header) (transport.Response, copilotTokenEntry, error) {
 	request := transport.Request{
 		Method:  http.MethodPost,
 		URL:     token.APIBaseURL + endpoint,
-		Headers: inferenceHeaders(token.Token, stream, body),
+		Headers: withHeaders(inferenceHeaders(token.Token, stream, body), extraHeaders),
 		Body:    body,
 	}
 	resp, errDo := s.host.Do(ctx, callbackID, request)
@@ -194,10 +195,17 @@ func (s *Service) doModelRequest(ctx context.Context, callbackID, authID string,
 		}
 		token = refreshed
 		request.URL = token.APIBaseURL + endpoint
-		request.Headers = inferenceHeaders(token.Token, stream, body)
+		request.Headers = withHeaders(inferenceHeaders(token.Token, stream, body), extraHeaders)
 		resp, errDo = s.host.Do(ctx, callbackID, request)
 		if errDo != nil {
 			return transport.Response{}, token, fmt.Errorf("call Copilot model endpoint after token refresh: %w", errDo)
+		}
+	}
+	if fallback, ok := withoutAnthropicBeta(extraHeaders); ok && resp.StatusCode == http.StatusBadRequest {
+		request.Headers = withHeaders(inferenceHeaders(token.Token, stream, body), fallback)
+		resp, errDo = s.host.Do(ctx, callbackID, request)
+		if errDo != nil {
+			return transport.Response{}, token, fmt.Errorf("call Copilot model endpoint without betas: %w", errDo)
 		}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -206,11 +214,11 @@ func (s *Service) doModelRequest(ctx context.Context, callbackID, authID string,
 	return resp, token, nil
 }
 
-func (s *Service) openModelStream(ctx context.Context, callbackID, authID string, storage authStorage, token copilotTokenEntry, endpoint string, body []byte) (transport.Stream, copilotTokenEntry, error) {
+func (s *Service) openModelStream(ctx context.Context, callbackID, authID string, storage authStorage, token copilotTokenEntry, endpoint string, body []byte, extraHeaders http.Header) (transport.Stream, copilotTokenEntry, error) {
 	request := transport.Request{
 		Method:  http.MethodPost,
 		URL:     token.APIBaseURL + endpoint,
-		Headers: inferenceHeaders(token.Token, true, body),
+		Headers: withHeaders(inferenceHeaders(token.Token, true, body), extraHeaders),
 		Body:    body,
 	}
 	stream, errOpen := s.host.OpenStream(ctx, callbackID, request)
@@ -226,10 +234,18 @@ func (s *Service) openModelStream(ctx context.Context, callbackID, authID string
 		}
 		token = refreshed
 		request.URL = token.APIBaseURL + endpoint
-		request.Headers = inferenceHeaders(token.Token, true, body)
+		request.Headers = withHeaders(inferenceHeaders(token.Token, true, body), extraHeaders)
 		stream, errOpen = s.host.OpenStream(ctx, callbackID, request)
 		if errOpen != nil {
 			return transport.Stream{}, token, fmt.Errorf("open Copilot model stream after token refresh: %w", errOpen)
+		}
+	}
+	if fallback, ok := withoutAnthropicBeta(extraHeaders); ok && stream.StatusCode == http.StatusBadRequest {
+		_ = s.host.CloseStream(ctx, stream.ID)
+		request.Headers = withHeaders(inferenceHeaders(token.Token, true, body), fallback)
+		stream, errOpen = s.host.OpenStream(ctx, callbackID, request)
+		if errOpen != nil {
+			return transport.Stream{}, token, fmt.Errorf("open Copilot model stream without betas: %w", errOpen)
 		}
 	}
 	return stream, token, nil
@@ -478,6 +494,20 @@ func copilotHeaders(token string, stream bool) http.Header {
 	headers.Set("X-Initiator", "user")
 	headers.Set("X-Interaction-Type", "conversation-agent")
 	headers.Set("X-Request-Id", requestID)
+	return headers
+}
+
+// upstreamPassthroughHeaders selects client headers that are safe to forward.
+// Only an untranslated Claude request to the native Messages endpoint carries
+// Anthropic protocol headers; translated requests must not.
+func upstreamPassthroughHeaders(sourceFormat, endpoint string, inbound http.Header, forwardBetas bool) http.Header {
+	if sourceFormat != "claude" || endpoint != translate.EndpointMessages {
+		return nil
+	}
+	headers := anthropicPassthroughHeaders(inbound)
+	if !forwardBetas {
+		headers.Del("Anthropic-Beta")
+	}
 	return headers
 }
 
