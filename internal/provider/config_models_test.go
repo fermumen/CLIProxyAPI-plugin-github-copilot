@@ -166,3 +166,23 @@ func TestAllowRawModelNames(t *testing.T) {
 		t.Fatalf("expected raw model id resolution, got %q %v", native, err)
 	}
 }
+
+func TestRawModelNamesOnly(t *testing.T) {
+	cfg, err := ParseConfig([]byte("raw_model_names_only: true"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aliases := cfg.modelAliases("gpt-4o"); !reflect.DeepEqual(aliases, []string{"gpt-4o"}) {
+		t.Fatalf("expected only raw alias, got %v", aliases)
+	}
+	for _, id := range []string{"gpt-4o", "copilot/gpt-4o"} {
+		native, err := cfg.upstreamModelID(id)
+		if err != nil || native != "gpt-4o" {
+			t.Fatalf("resolve %q: got %q %v", id, native, err)
+		}
+	}
+	infos := modelInfos([]upstreamModel{{ID: "gpt-4o"}}, cfg)
+	if len(infos) != 1 || infos[0].ID != "gpt-4o" {
+		t.Fatalf("expected single raw catalog entry, got %+v", infos)
+	}
+}

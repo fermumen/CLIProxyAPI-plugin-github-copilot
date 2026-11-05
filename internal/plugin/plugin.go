@@ -18,7 +18,7 @@ import (
 const ID = "github-copilot"
 
 var (
-	Version    = "0.1.3"
+	Version    = "0.1.4"
 	Repository = "UNCONFIGURED"
 )
 
@@ -299,6 +299,8 @@ func pluginRegistration() registration {
 				{Name: "allow_custom_endpoints", Type: pluginapi.ConfigFieldTypeBoolean, Description: "Opt in to custom HTTPS endpoints outside the default GitHub and Copilot origins; disabled by default. Only enable for endpoints you trust with credentials. GHE.com tenant restrictions still apply. Changing this requires a plugin restart."},
 				{Name: "allow_custom_scopes", Type: pluginapi.ConfigFieldTypeBoolean, Description: "Opt in to OAuth scopes other than read:user; disabled by default. Broader scopes may grant additional account access. Changing this requires a plugin restart."},
 				{Name: "oauth_timeout_seconds", Type: pluginapi.ConfigFieldTypeInteger, Description: "Maximum device-code lifetime accepted by the plugin."},
+				{Name: "allow_raw_model_names", Type: pluginapi.ConfigFieldTypeBoolean, Description: "Also expose unprefixed model names (e.g. gpt-4o alongside copilot/gpt-4o)."},
+				{Name: "raw_model_names_only", Type: pluginapi.ConfigFieldTypeBoolean, Description: "Expose only unprefixed model names (e.g. gpt-4o, no copilot/gpt-4o) so the host can route shared names across providers. Ignored when models is set."},
 				{Name: "forward_anthropic_betas", Type: pluginapi.ConfigFieldTypeBoolean, Description: "Forward supported anthropic-beta headers from Claude clients to the Copilot Messages endpoint; enabled by default. A 400 response is retried once without betas."},
 				{Name: "token_expiry_buffer_seconds", Type: pluginapi.ConfigFieldTypeInteger, Description: "Refresh Copilot API tokens this long before expiration."},
 			},

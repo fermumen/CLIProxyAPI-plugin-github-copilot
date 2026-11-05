@@ -121,6 +121,7 @@ No login is performed during build, installation, or startup.
 | `model_cache_ttl_seconds` | `60` | Catalog cache lifetime, from 30 to 60 seconds |
 | `model_picker_required` | `false` | When true, requires `model_picker_enabled: true` from GitHub; when false, exposes all active chat models |
 | `allow_raw_model_names` | `false` | When true, exposes raw model names (e.g. `gpt-4o`) alongside prefixed ones (`copilot/gpt-4o`) |
+| `raw_model_names_only` | `false` | When true, exposes only raw model names (`gpt-4o`) and no `copilot/` names, so the host routes shared names across providers; ignored when `models` is set |
 | `forward_anthropic_betas` | `true` | Forwards supported `anthropic-beta` headers from Claude clients to Copilot's Messages endpoint; a `400` is retried once without betas |
 
 ```yaml

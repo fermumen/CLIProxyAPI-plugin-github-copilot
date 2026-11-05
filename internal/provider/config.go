@@ -39,6 +39,7 @@ type Config struct {
 	ModelsExcluded           []string      `yaml:"models_excluded"`
 	ModelPickerRequired      bool          `yaml:"model_picker_required"`
 	AllowRawModelNames       bool          `yaml:"allow_raw_model_names"`
+	RawModelNamesOnly        bool          `yaml:"raw_model_names_only"`
 	ForwardAnthropicBetas    bool          `yaml:"forward_anthropic_betas"`
 }
 

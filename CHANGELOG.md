@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 
+## [v0.1.4] - 2026-11-05
+
+### Added
+
+- 💡 feat: `raw_model_names_only` option (default `false`). When true, the catalog lists only raw model names (`gpt-6.1-sol`) and no `copilot/` names, so clients cannot pin a Copilot-only name and the host's routing (e.g. fill-first) handles shared names. Raw names are also accepted on requests. Ignored when a `models` allowlist is set.
+- `allow_raw_model_names` and `raw_model_names_only` now appear in the plugin's config fields.
+
 ## [v0.1.3] - 2026-11-05
 
 ### Added

@@ -14,6 +14,9 @@ func (c Config) exposedModelID(upstreamID string) string { return c.ModelPrefix 
 
 func (c Config) modelAliases(upstreamID string) []string {
 	if len(c.Models) == 0 {
+		if c.RawModelNamesOnly {
+			return []string{upstreamID}
+		}
 		if c.AllowRawModelNames {
 			return []string{c.exposedModelID(upstreamID), upstreamID}
 		}
@@ -41,7 +44,7 @@ func (c Config) upstreamModelID(exposedID string) (string, error) {
 	if ok && id != "" {
 		return id, nil
 	}
-	if c.AllowRawModelNames && exposedID != "" {
+	if (c.AllowRawModelNames || c.RawModelNamesOnly) && exposedID != "" {
 		return exposedID, nil
 	}
 	return "", statusError("model_not_found", "Copilot models must use the configured "+c.ModelPrefix+"/ namespace", 404)
