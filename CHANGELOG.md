@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 
+## [v0.1.5] - 2026-11-26
+
+### Added
+
+- Management clients can now show each Copilot account's plan, remaining premium request, chat and completion allowances, and reset times.
+
 ## [v0.1.4] - 2026-11-05
 
 ### Added
